@@ -7,6 +7,7 @@
       </h1>
 
       <div class="grid md:grid-cols-3 gap-6">
+        
         <div class="md:col-span-2 space-y-4">
           <div class="bg-white p-6 rounded shadow-sm relative overflow-hidden">
              <div class="absolute top-0 left-0 w-1 h-full bg-repeating-linear-gradient(45deg, #ee4d2d, #ee4d2d 10px, #fff 10px, #fff 20px, #00bfa5 20px, #00bfa5 30px, #fff 30px, #fff 40px)"></div>
@@ -42,20 +43,45 @@
             
             <div class="space-y-3">
               <p class="text-xs text-gray-400 font-bold uppercase mt-2">Transfer Bank</p>
-              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'BCA_VA'}">
+              
+              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary transition" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'BCA_VA'}">
                 <input type="radio" v-model="selectedPaymentMethod" value="BCA_VA" class="accent-shopee-primary">
-                <span class="text-sm font-medium">BCA Virtual Account</span>
-              </label>
-              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'BNI_VA'}">
-                <input type="radio" v-model="selectedPaymentMethod" value="BNI_VA" class="accent-shopee-primary">
-                <span class="text-sm font-medium">BNI Virtual Account</span>
+                <div class="flex flex-col">
+                  <span class="text-sm font-medium">BCA Virtual Account</span>
+                </div>
               </label>
 
-              <p class="text-xs text-gray-400 font-bold uppercase mt-4">E-Wallet</p>
-              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'OVO'}">
+              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary transition" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'BNI_VA'}">
+                <input type="radio" v-model="selectedPaymentMethod" value="BNI_VA" class="accent-shopee-primary">
+                <div class="flex flex-col">
+                   <span class="text-sm font-medium">BNI Virtual Account</span>
+                </div>
+              </label>
+
+              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary transition" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'BRI_VA'}">
+                <input type="radio" v-model="selectedPaymentMethod" value="BRI_VA" class="accent-shopee-primary">
+                <div class="flex flex-col">
+                   <span class="text-sm font-medium">BRI Virtual Account</span>
+                </div>
+              </label>
+
+              <p class="text-xs text-gray-400 font-bold uppercase mt-4">E-Wallet & QRIS</p>
+              
+              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary transition" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'OVO'}">
                 <input type="radio" v-model="selectedPaymentMethod" value="OVO" class="accent-shopee-primary">
                 <span class="text-sm font-medium">OVO</span>
               </label>
+
+              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary transition" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'DANA'}">
+                <input type="radio" v-model="selectedPaymentMethod" value="DANA" class="accent-shopee-primary">
+                <span class="text-sm font-medium">DANA</span>
+              </label>
+
+              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary transition" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'QRIS'}">
+                <input type="radio" v-model="selectedPaymentMethod" value="QRIS" class="accent-shopee-primary">
+                <span class="text-sm font-medium">QRIS (Scan All)</span>
+              </label>
+
             </div>
           </div>
 
@@ -70,6 +96,7 @@
              </button>
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -87,8 +114,9 @@ const router = useRouter();
 const auth = useAuthStore();
 const checkoutItems = ref<any[]>([]);
 const loading = ref(false);
-const selectedPaymentMethod = ref('BCA_VA');
+const selectedPaymentMethod = ref('BCA_VA'); // Default selected
 
+// Gunakan URL Production kamu
 const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
 
 onMounted(() => {
@@ -123,7 +151,7 @@ const processCheckout = async () => {
     // Bersihkan cart lokal
     localStorage.removeItem('checkoutItems');
 
-    // 🔥 FIX: Validasi Payment Details Sebelum Redirect 🔥
+    // Validasi Payment Details Sebelum Redirect
     if (payment) {
         // Encode dan redirect ke halaman sukses
         const paymentDataString = btoa(JSON.stringify(payment));

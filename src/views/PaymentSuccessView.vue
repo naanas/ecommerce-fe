@@ -77,7 +77,7 @@ const goToPayment = () => {
     // Priority 2: Simulation Link
     if (paymentDetails.value?.transaction_id) {
         const orchestratorUrl = 'https://payment-orchestrator-fkb1.vercel.app/'; 
-        const link = `${orchestratorUrl}/api/payments/pay-simulate/${paymentDetails.value.transaction_id}`;
+        const link = `${orchestratorUrl}/api/payments/webhook/${paymentDetails.value.transaction_id}`;
         window.open(link, '_blank');
     } else {
         alert("Link pembayaran belum tersedia.");
