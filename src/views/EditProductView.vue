@@ -65,7 +65,7 @@ const loadingData = ref(true);
 const submitting = ref(false);
 const form = reactive({ name: '', description: '', price: 0, stock: 0, image_url: '' });
 
-const api = axios.create({ baseURL: 'http://localhost:4000/api' });
+const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
 
 onMounted(async () => {
   try {

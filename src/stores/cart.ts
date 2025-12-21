@@ -23,7 +23,7 @@ export const useCartStore = defineStore('cart', {
       }
 
       try {
-        const res = await axios.get('http://localhost:4000/api/cart', {
+        const res = await axios.get('https://ecommerce-api-topaz-iota.vercel.app/api/cart', {
           headers: { Authorization: `Bearer ${auth.token}` }
         });
         if (res.data.success) {
@@ -39,7 +39,7 @@ export const useCartStore = defineStore('cart', {
       if (!auth.token) throw new Error("Silakan login terlebih dahulu");
 
       // 1. Kirim ke Backend
-      await axios.post('http://localhost:4000/api/cart', 
+      await axios.post('https://ecommerce-api-topaz-iota.vercel.app/api/cart', 
         { product_id: productId, quantity },
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );

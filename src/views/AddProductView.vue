@@ -84,7 +84,7 @@ const submitProduct = async () => {
   
   loading.value = true;
   try {
-    await axios.post('http://localhost:4000/api/products', {
+    await axios.post('https://ecommerce-api-topaz-iota.vercel.app/api/products', {
       name: form.name,
       description: form.description,
       price: Number(form.price),

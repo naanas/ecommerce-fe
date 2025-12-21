@@ -64,7 +64,7 @@ import { useRouter } from 'vue-router';
 const products = ref<any[]>([]);
 const auth = useAuthStore();
 const router = useRouter();
-const api = axios.create({ baseURL: 'http://localhost:4000/api' });
+const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
 
 const loadMyProducts = async () => {
   try {

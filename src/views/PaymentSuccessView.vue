@@ -81,7 +81,7 @@ const goToPayment = () => {
     // 2. Jika tidak ada URL tapi ada Transaction ID, arahkan ke SIMULASI ORCHESTRATOR
     // Sesuaikan port 3000 dengan backend orchestrator kamu
     if (paymentDetails.value.transaction_id) {
-        const orchestratorUrl = 'http://localhost:3000'; 
+        const orchestratorUrl = 'https://payment-orchestrator-fkb1.vercel.app'; 
         const link = `${orchestratorUrl}/api/payments/pay-simulate/${paymentDetails.value.transaction_id}`;
         window.open(link, '_blank');
     } else {

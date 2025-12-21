@@ -77,7 +77,7 @@ import { useAuthStore } from '../stores/auth';
 const orders = ref<any[]>([]);
 const loading = ref(true);
 const auth = useAuthStore();
-const api = axios.create({ baseURL: 'http://localhost:4000/api' });
+const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
 
 onMounted(async () => {
   if (!auth.token) return;
@@ -113,7 +113,7 @@ const payNow = (order: any) => {
 const trxId = order.payment_id;
   if (trxId) {
      // URL Orchestrator (Backend Payment)
-     const orchestratorUrl = 'http://localhost:3000'; 
+     const orchestratorUrl = 'https://payment-orchestrator-fkb1.vercel.app'; 
      
      // Buka link simulasi pembayaran di tab baru
      const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`;

@@ -93,7 +93,7 @@ const loading = ref(true);
 const auth = useAuthStore();
 const cartStore = useCartStore();
 
-const api = axios.create({ baseURL: 'http://localhost:4000/api' });
+const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
 
 const loadProducts = async () => {
   loading.value = true;

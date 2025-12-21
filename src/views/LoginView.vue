@@ -93,7 +93,7 @@ const handleLogin = async () => {
   loading.value = true;
   try {
     // Sesuaikan URL dengan backend kamu
-    const res = await axios.post('http://localhost:4000/api/auth/login', {
+    const res = await axios.post('https://ecommerce-api-topaz-iota.vercel.app/api/auth/login', {
       email: email.value,
       password: password.value
     });
