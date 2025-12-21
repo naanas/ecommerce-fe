@@ -1,113 +1,144 @@
 <template>
   <Navbar />
-  <div class="container mx-auto px-4 py-6 max-w-4xl">
-    <div class="bg-white p-6 shadow-sm rounded mb-4">
-      <h2 class="text-shopee-primary text-lg font-bold mb-4 flex items-center gap-2">
-         📍 Alamat Pengiriman
-      </h2>
-      <div class="text-sm">
-         <strong>{{ auth.user.name }} (+62) {{ auth.user.phone }}</strong> <br>
-         Jalan Programming No. 1, Jakarta Selatan, DKI Jakarta
-         <span class="border border-shopee-primary text-shopee-primary text-xs px-1 ml-2">Utama</span>
-      </div>
-    </div>
+  <div class="min-h-screen bg-gray-100 pb-20">
+    <div class="container mx-auto px-4 py-6 max-w-4xl">
+      <h1 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+        <CreditCard :size="24" /> Checkout
+      </h1>
 
-    <div class="bg-white p-6 shadow-sm rounded mb-4">
-       <h3 class="font-bold mb-4">Produk Dipesan</h3>
-       <div v-for="item in items" :key="item.id" class="flex justify-between items-center mb-4 border-b pb-2">
-          <div class="flex items-center gap-4">
-             <img :src="item.products.image_url" class="w-16 h-16 object-cover border">
-             <span class="text-sm">{{ item.products.name }}</span>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="md:col-span-2 space-y-4">
+          <div class="bg-white p-6 rounded shadow-sm relative overflow-hidden">
+             <div class="absolute top-0 left-0 w-1 h-full bg-repeating-linear-gradient(45deg, #ee4d2d, #ee4d2d 10px, #fff 10px, #fff 20px, #00bfa5 20px, #00bfa5 30px, #fff 30px, #fff 40px)"></div>
+             <h3 class="font-bold text-gray-700 mb-2 flex items-center gap-2">
+                <MapPin :size="18" class="text-shopee-primary"/> Alamat Pengiriman
+             </h3>
+             <div class="text-sm text-gray-600 ml-6">
+                <p class="font-bold text-gray-800">{{ auth.user?.name }} (+62) 812-3456-7890</p>
+                <p>Jalan Teknologi No. 10, Jakarta Selatan</p>
+             </div>
           </div>
-          <div class="text-sm">x{{ item.quantity }}</div>
-          <div class="font-bold">Rp{{ formatPrice(item.products.price * item.quantity) }}</div>
-       </div>
-    </div>
 
-    <div class="bg-white p-6 shadow-sm rounded mb-4">
-       <h3 class="font-bold mb-4">Metode Pembayaran</h3>
-       <div class="flex gap-4">
-          <button 
-            v-for="method in ['BCA_VA', 'BNI_VA','BRI_VA', 'OVO', 'DANA']" 
-            :key="method"
-            @click="selectedPayment = method"
-            :class="selectedPayment === method ? 'border-shopee-primary text-shopee-primary bg-orange-50' : 'border-gray-200 hover:border-orange-300'"
-            class="border px-4 py-2 rounded"
-          >
-            {{ method }}
-          </button>
-       </div>
-    </div>
-
-    <div class="bg-white p-6 shadow-sm rounded flex justify-end items-center gap-6">
-        <div class="text-right">
-            <div class="text-gray-500 text-sm">Total Pembayaran</div>
-            <div class="text-shopee-primary text-2xl font-bold">Rp{{ formatPrice(total) }}</div>
+          <div class="bg-white p-6 rounded shadow-sm">
+             <h3 class="font-bold text-gray-700 mb-4 border-b pb-2">Produk Dipesan</h3>
+             <div v-for="item in checkoutItems" :key="item.id" class="flex gap-4 mb-4 last:mb-0">
+                <img :src="item.products?.image_url || 'https://placehold.co/100'" class="w-16 h-16 object-cover border rounded bg-gray-50">
+                <div class="flex-1">
+                   <h4 class="font-medium text-gray-800 line-clamp-1">{{ item.products?.name }}</h4>
+                   <p class="text-xs text-gray-400 mt-1">x{{ item.quantity }}</p>
+                </div>
+                <div class="text-right">
+                   <p class="font-medium text-gray-800">Rp{{ formatPrice(item.products?.price) }}</p>
+                </div>
+             </div>
+          </div>
         </div>
-        <button @click="processPayment" class="bg-shopee-primary text-white py-3 px-12 rounded font-bold hover:bg-orange-600">
-            Buat Pesanan
-        </button>
-    </div>
-    
-    <div v-if="paymentResult" class="fixed inset-0 bg-black/50 flex justify-center items-center">
-       <div class="bg-white p-8 rounded-lg max-w-md w-full text-center">
-          <h2 class="text-2xl font-bold mb-4">Pesanan Dibuat!</h2>
-          <p class="mb-4">Silakan bayar menggunakan VA berikut:</p>
-          <div class="bg-gray-100 p-4 font-mono text-xl font-bold mb-4">
-             {{ paymentResult.payment_details.virtual_account || 'QR CODE' }}
+
+        <div class="md:col-span-1 space-y-4">
+          <div class="bg-white p-6 rounded shadow-sm">
+            <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">
+               <Wallet :size="18" /> Metode Pembayaran
+            </h3>
+            
+            <div class="space-y-3">
+              <p class="text-xs text-gray-400 font-bold uppercase mt-2">Transfer Bank</p>
+              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'BCA_VA'}">
+                <input type="radio" v-model="selectedPaymentMethod" value="BCA_VA" class="accent-shopee-primary">
+                <span class="text-sm font-medium">BCA Virtual Account</span>
+              </label>
+              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'BNI_VA'}">
+                <input type="radio" v-model="selectedPaymentMethod" value="BNI_VA" class="accent-shopee-primary">
+                <span class="text-sm font-medium">BNI Virtual Account</span>
+              </label>
+
+              <p class="text-xs text-gray-400 font-bold uppercase mt-4">E-Wallet</p>
+              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'OVO'}">
+                <input type="radio" v-model="selectedPaymentMethod" value="OVO" class="accent-shopee-primary">
+                <span class="text-sm font-medium">OVO</span>
+              </label>
+            </div>
           </div>
-          <a :href="paymentResult.payment_details.payment_url" target="_blank" class="text-blue-500 underline mb-4 block">
-             Simulasi Bayar (Klik Disini)
-          </a>
-          <button @click="router.push('/')" class="bg-shopee-primary text-white px-6 py-2 rounded">Selesai</button>
-       </div>
+
+          <div class="bg-white p-6 rounded shadow-sm sticky top-24">
+             <div class="flex justify-between pt-4 border-t font-bold text-lg text-shopee-primary mb-4">
+                <span>Total</span>
+                <span>Rp{{ formatPrice(totalPrice) }}</span>
+             </div>
+
+             <button @click="processCheckout" :disabled="loading" class="w-full bg-shopee-primary text-white py-3 rounded font-bold hover:bg-orange-600 transition disabled:opacity-50">
+                {{ loading ? 'Memproses...' : 'BUAT PESANAN' }}
+             </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import axios from 'axios';
-import Navbar from '../components/Navbar.vue';
-import { useAuthStore } from '../stores/auth';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import Navbar from '../components/Navbar.vue';
+import { MapPin, CreditCard, Wallet } from 'lucide-vue-next';
+import axios from 'axios';
+import { useAuthStore } from '../stores/auth';
 
-const auth = useAuthStore();
 const router = useRouter();
-const items = ref<any[]>([]);
-const selectedPayment = ref('VA_BCA');
-const paymentResult = ref<any>(null);
+const auth = useAuthStore();
+const checkoutItems = ref<any[]>([]);
+const loading = ref(false);
+const selectedPaymentMethod = ref('BCA_VA');
 
 const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
 
 onMounted(() => {
-    const data = localStorage.getItem('checkoutItems');
-    if(data) items.value = JSON.parse(data);
+  if (!auth.token) return router.push('/login');
+  const items = localStorage.getItem('checkoutItems');
+  if (items) checkoutItems.value = JSON.parse(items);
+  else router.push('/cart');
 });
 
-const total = computed(() => items.value.reduce((s, i) => s + (i.products.price * i.quantity), 0));
+const totalPrice = computed(() => {
+  return checkoutItems.value.reduce((sum, item) => sum + (item.products.price * item.quantity), 0);
+});
+
 const formatPrice = (p: number) => new Intl.NumberFormat('id-ID').format(p);
 
-const processPayment = async () => {
-    try {
-        // Format payload sesuai Backend OrderController.createOrder terbaru
-        const payload = {
-            payment_method_code: selectedPayment.value,
-            items: items.value.map(i => ({
-                product_id: i.product_id,
-                quantity: i.quantity
-            }))
-        };
+const processCheckout = async () => {
+  loading.value = true;
+  try {
+    const res = await api.post('/orders', {
+      items: checkoutItems.value.map(item => ({
+        product_id: item.products.id,
+        quantity: item.quantity
+      })),
+      payment_method_code: selectedPaymentMethod.value
+    }, {
+      headers: { Authorization: `Bearer ${auth.token}` }
+    });
 
-        const res = await api.post('/orders', payload, {
-            headers: { Authorization: `Bearer ${auth.token}` }
-        });
+    const result = res.data.data;
+    const payment = result.payment_details; 
 
-        paymentResult.value = res.data.data;
-        // Hapus temp cart
-        localStorage.removeItem('checkoutItems');
-    } catch (e: any) {
-        alert(e.response?.data?.error || 'Gagal Checkout');
+    // Bersihkan cart lokal
+    localStorage.removeItem('checkoutItems');
+
+    // 🔥 FIX: Validasi Payment Details Sebelum Redirect 🔥
+    if (payment) {
+        // Encode dan redirect ke halaman sukses
+        const paymentDataString = btoa(JSON.stringify(payment));
+        router.push(`/payment-success?data=${paymentDataString}`);
+    } else {
+        // Fallback jika payment gagal diinisiasi tapi order kebuat
+        alert("Order berhasil dibuat! Silakan cek status pembayaran di menu Pesanan Saya.");
+        router.push('/orders');
     }
-}
+
+  } catch (error: any) {
+    console.error("Checkout Failed:", error);
+    alert(error.response?.data?.error || "Gagal checkout");
+  } finally {
+    loading.value = false;
+  }
+};
 </script>
