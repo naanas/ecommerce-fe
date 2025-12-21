@@ -4,9 +4,15 @@
     <div class="container mx-auto px-4 py-2 flex justify-between items-center text-xs">
       
       <div class="flex gap-4 items-center">
+        
         <template v-if="auth.token && auth.user.role === 'SELLER'">
            <router-link to="/seller/add-product" class="hover:opacity-80 font-bold flex items-center gap-1 text-white">
               <PlusCircle :size="14" /> Tambah Produk
+           </router-link>
+           <span class="border-l border-white/30 h-3"></span>
+           
+           <router-link to="/seller/my-shop" class="hover:opacity-80 font-bold flex items-center gap-1 text-white">
+              <Store :size="14" /> Toko Saya
            </router-link>
            <span class="border-l border-white/30 h-3"></span>
         </template>
@@ -15,6 +21,7 @@
         <span class="border-l border-white/30 h-3"></span>
         <a href="#" class="hover:opacity-80">Download</a>
         <span class="border-l border-white/30 h-3"></span>
+        
         <div class="flex gap-2">
            <span class="opacity-80">Ikuti kami di</span>
            <a href="#" class="font-bold">FB</a>
@@ -46,7 +53,7 @@
 
     <div class="container mx-auto px-4 py-4 flex items-center gap-4 md:gap-8">
       
-      <router-link to="/" class="text-2xl font-bold flex items-center gap-2 shrink-0 hover:opacity-95">
+      <router-link to="/" class="text-2xl font-bold flex items-center gap-2 shrink-0 hover:opacity-95 text-white no-underline">
         <ShoppingBag :size="32" /> 
         <span class="hidden md:inline">ShopeeClone</span>
       </router-link>
@@ -62,11 +69,13 @@
             <Search :size="16" class="text-white" />
           </button>
         </form>
+        
         <div class="absolute -bottom-6 left-0 text-[10px] flex gap-3 text-white/80 w-full overflow-hidden whitespace-nowrap">
            <a href="#" class="hover:text-white">Kemeja Pria</a>
            <a href="#" class="hover:text-white">Tas Selempang</a>
            <a href="#" class="hover:text-white">Sepatu Running</a>
            <a href="#" class="hover:text-white">Voucher Game</a>
+           <a href="#" class="hover:text-white">iPhone 15</a>
         </div>
       </div>
 
@@ -85,7 +94,8 @@
 
 <script setup lang="ts">
 import { onMounted, watch } from 'vue';
-import { ShoppingBag, Search, ShoppingCart, User, PlusCircle } from 'lucide-vue-next';
+// Import Icon yang dibutuhkan
+import { ShoppingBag, Search, ShoppingCart, User, PlusCircle, Store } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
 import { useCartStore } from '../stores/cart';
 import { useRouter } from 'vue-router';
@@ -94,14 +104,15 @@ const auth = useAuthStore();
 const cartStore = useCartStore();
 const router = useRouter();
 
-// 1. Ambil data cart saat komponen dipasang (kalau user login)
+// 1. Lifecycle: Ambil data cart saat komponen dipasang (jika login)
 onMounted(() => {
   if (auth.token) {
     cartStore.fetchCart();
   }
 });
 
-// 2. Watcher: Kalau user login/logout, refresh data cart
+// 2. Watcher: Pantau status login user
+// Jika login -> ambil cart. Jika logout -> bersihkan cart.
 watch(() => auth.token, (newToken) => {
   if (newToken) {
     cartStore.fetchCart();

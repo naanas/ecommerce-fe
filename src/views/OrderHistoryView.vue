@@ -110,13 +110,18 @@ const statusClass = (status: string) => {
 };
 
 const payNow = (order: any) => {
-  // Simulasi membuka link pembayaran (Karena ini clone, kita arahkan ke orchestrator simulasi atau info manual)
-  if(order.payment_id) {
-     const orchestratorUrl = 'http://localhost:3000'; // Port Payment Orchestrator kamu
-     // Buka tab baru ke simulasi pembayaran orchestrator
-     window.open(`${orchestratorUrl}/api/payments/pay-simulate/${order.payment_id}`, '_blank');
-  } else {
-     alert("Menunggu inisiasi pembayaran...");
+const trxId = order.payment_id;
+  if (trxId) {
+     // URL Orchestrator (Backend Payment)
+     const orchestratorUrl = 'http://localhost:3000'; 
+     
+     // Buka link simulasi pembayaran di tab baru
+     const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`;
+     window.open(simulationLink, '_blank');
+  } 
+  else {
+     // Fallback kalau payment_id null (berarti backend gagal update ID saat checkout)
+     alert("Menunggu inisiasi pembayaran atau ID pembayaran tidak ditemukan.");
   }
 }
 </script>
