@@ -79,7 +79,7 @@ const goToPayment = () => {
         return;
     }
     if (paymentDetails.value?.transaction_id) {
-        const link = `${orchestratorUrl}/payments/pay-simulate/${paymentDetails.value.transaction_id}`;
+        const link = `${orchestratorUrl}/api/payments/pay-simulate/${paymentDetails.value.transaction_id}`;
         window.open(link, '_blank');
     } else {
         alert("Link pembayaran belum tersedia.");
