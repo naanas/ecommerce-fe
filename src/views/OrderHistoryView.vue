@@ -44,7 +44,7 @@
 
           <div class="px-6 py-4 bg-orange-50/30 flex justify-between items-center">
              <div class="text-xs text-gray-500">
-                Payment ID: {{ order.payment_id || '-' }}
+               Payment ID: {{ order.payment_id || '-' }}
              </div>
              <div class="flex items-center gap-4">
                 <div class="text-right">
@@ -77,7 +77,12 @@ import { useAuthStore } from '../stores/auth';
 const orders = ref<any[]>([]);
 const loading = ref(true);
 const auth = useAuthStore();
-const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
+
+// --- BAGIAN ENV ---
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const PAYMENT_ORCHESTRATOR_URL = import.meta.env.VITE_PAYMENT_ORCHESTRATOR_URL;
+
+const api = axios.create({ baseURL: API_BASE_URL });
 
 onMounted(async () => {
   if (!auth.token) return;
@@ -110,18 +115,15 @@ const statusClass = (status: string) => {
 };
 
 const payNow = (order: any) => {
-const trxId = order.payment_id;
+  const trxId = order.payment_id;
   if (trxId) {
-     // URL Orchestrator (Backend Payment)
-     const orchestratorUrl = 'https://payment-orchestrator-fkb1.vercel.app'; 
-     
-     // Buka link simulasi pembayaran di tab baru
-     const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`;
-     window.open(simulationLink, '_blank');
+      const orchestratorUrl = PAYMENT_ORCHESTRATOR_URL; 
+      // Buka link simulasi pembayaran
+      const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`;
+      window.open(simulationLink, '_blank');
   } 
   else {
-     // Fallback kalau payment_id null (berarti backend gagal update ID saat checkout)
-     alert("Menunggu inisiasi pembayaran atau ID pembayaran tidak ditemukan.");
+      alert("Menunggu inisiasi pembayaran atau ID pembayaran tidak ditemukan.");
   }
 }
 </script>
