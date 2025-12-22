@@ -116,9 +116,10 @@ const checkoutItems = ref<any[]>([]);
 const loading = ref(false);
 const selectedPaymentMethod = ref('BCA_VA'); // Default selected
 
-// Gunakan URL Production kamu
-const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
-
+// Gunakan URL Production kamu jika sudah deploy
+const api = axios.create({ 
+  baseURL: import.meta.env.VITE_API_BASE_URL 
+});
 onMounted(() => {
   if (!auth.token) return router.push('/login');
   const items = localStorage.getItem('checkoutItems');
@@ -151,14 +152,20 @@ const processCheckout = async () => {
     // Bersihkan cart lokal
     localStorage.removeItem('checkoutItems');
 
-    // Validasi Payment Details Sebelum Redirect
+    // [FIXED] Logika Redirect Pembayaran
     if (payment) {
-        // Encode dan redirect ke halaman sukses
-        const paymentDataString = btoa(JSON.stringify(payment));
-        router.push(`/payment-success?data=${paymentDataString}`);
+        // Cek apakah ada Payment URL (untuk E-Wallet / Payment Gateway / Link Ajaib)
+        if (payment.payment_url && payment.payment_url.startsWith('http')) {
+             // Redirect window browser ke halaman pembayaran eksternal
+             window.location.href = payment.payment_url;
+        } else {
+             // Jika tipe VA atau Manual, tampilkan halaman sukses internal
+             const paymentDataString = btoa(JSON.stringify(payment));
+             router.push(`/payment-success?data=${paymentDataString}`);
+        }
     } else {
-        // Fallback jika payment gagal diinisiasi tapi order kebuat
-        alert("Order berhasil dibuat! Silakan cek status pembayaran di menu Pesanan Saya.");
+        // Fallback jika payment detail kosong
+        alert("Order berhasil dibuat! Silakan cek status di menu Pesanan Saya.");
         router.push('/orders');
     }
 
