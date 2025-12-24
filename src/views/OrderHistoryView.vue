@@ -119,7 +119,7 @@ const payNow = (order: any) => {
   if (trxId) {
       const orchestratorUrl = PAYMENT_ORCHESTRATOR_URL; 
       // Buka link simulasi pembayaran
-      const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`;
+      const simulationLink = `${orchestratorUrl}/payments/pay-simulate/${trxId}`;
       window.open(simulationLink, '_blank');
   } 
   else {

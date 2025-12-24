@@ -42,8 +42,6 @@
             </h3>
             
             <div class="space-y-3">
-              <p class="text-xs text-gray-400 font-bold uppercase mt-2">Transfer Bank</p>
-              
               <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary transition" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'BCA_VA'}">
                 <input type="radio" v-model="selectedPaymentMethod" value="BCA_VA" class="accent-shopee-primary">
                 <div class="flex flex-col">
@@ -77,7 +75,7 @@
                 <span class="text-sm font-medium">DANA</span>
               </label>
 
-              <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary transition" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'QRIS'}">
+               <label class="flex items-center gap-3 p-3 border rounded cursor-pointer hover:border-shopee-primary transition" :class="{'bg-orange-50 border-shopee-primary': selectedPaymentMethod === 'QRIS'}">
                 <input type="radio" v-model="selectedPaymentMethod" value="QRIS" class="accent-shopee-primary">
                 <span class="text-sm font-medium">QRIS (Scan All)</span>
               </label>
@@ -86,12 +84,25 @@
           </div>
 
           <div class="bg-white p-6 rounded shadow-sm sticky top-24">
-             <div class="flex justify-between pt-4 border-t font-bold text-lg text-shopee-primary mb-4">
-                <span>Total</span>
-                <span>Rp{{ formatPrice(totalPrice) }}</span>
+             <h3 class="font-bold text-gray-700 mb-3">Rincian Pembayaran</h3>
+             
+             <div class="flex justify-between text-sm text-gray-600 mb-2">
+                <span>Subtotal Produk</span>
+                <span>Rp{{ formatPrice(productSubtotal) }}</span>
+             </div>
+             
+             <div class="flex justify-between text-sm text-gray-600 mb-4">
+                <span>Biaya Layanan (Admin)</span>
+                <span v-if="loadingFee" class="text-gray-400 text-xs italic">Menghitung...</span>
+                <span v-else>Rp{{ formatPrice(adminFee) }}</span>
              </div>
 
-             <button @click="processCheckout" :disabled="loading" class="w-full bg-shopee-primary text-white py-3 rounded font-bold hover:bg-orange-600 transition disabled:opacity-50">
+             <div class="flex justify-between pt-4 border-t font-bold text-lg text-shopee-primary mb-4">
+                <span>Total Pembayaran</span>
+                <span>Rp{{ formatPrice(grandTotal) }}</span>
+             </div>
+
+             <button @click="processCheckout" :disabled="loading || loadingFee" class="w-full bg-shopee-primary text-white py-3 rounded font-bold hover:bg-orange-600 transition disabled:opacity-50">
                 {{ loading ? 'Memproses...' : 'BUAT PESANAN' }}
              </button>
           </div>
@@ -103,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue'; // Tambahkan watch
 import { useRouter } from 'vue-router';
 import Navbar from '../components/Navbar.vue';
 import { MapPin, CreditCard, Wallet } from 'lucide-vue-next';
@@ -114,24 +125,65 @@ const router = useRouter();
 const auth = useAuthStore();
 const checkoutItems = ref<any[]>([]);
 const loading = ref(false);
-const selectedPaymentMethod = ref('BCA_VA'); // Default selected
+const loadingFee = ref(false); 
+const adminFee = ref(0);
+const selectedPaymentMethod = ref('BCA_VA'); // Default
 
-// Gunakan URL Production kamu jika sudah deploy
+// Instance API untuk ke Ecommerce Backend
 const api = axios.create({ 
   baseURL: import.meta.env.VITE_API_BASE_URL 
 });
-onMounted(() => {
+
+// URL Orchestrator dari ENV
+const ORCHESTRATOR_URL = import.meta.env.VITE_PAYMENT_ORCHESTRATOR_URL || 'http://localhost:3000/api';
+
+onMounted(async () => {
   if (!auth.token) return router.push('/login');
+  
+  // 1. Load Cart Items
   const items = localStorage.getItem('checkoutItems');
   if (items) checkoutItems.value = JSON.parse(items);
   else router.push('/cart');
+
+  // 2. Fetch Admin Fee Pertama Kali
+  await fetchAdminFee();
 });
 
-const totalPrice = computed(() => {
+// [FIXED] Watcher: Pantau perubahan metode pembayaran
+watch(selectedPaymentMethod, () => {
+  fetchAdminFee();
+});
+
+const fetchAdminFee = async () => {
+  loadingFee.value = true;
+  try {
+    // [FIXED] Kirim parameter 'code' ke backend
+    const res = await axios.get(`${ORCHESTRATOR_URL}/admin/config`, {
+      params: { 
+        code: selectedPaymentMethod.value // Kirim kode metode (BCA_VA, OVO, dll)
+      }
+    });
+
+    if (res.data.success) {
+      adminFee.value = Number(res.data.data.admin_fee);
+    }
+  } catch (error) {
+    console.error("Gagal ambil fee", error);
+    adminFee.value = 0; // Reset ke 0 jika gagal agar tidak error perhitungan
+  } finally {
+    loadingFee.value = false;
+  }
+};
+
+const productSubtotal = computed(() => {
   return checkoutItems.value.reduce((sum, item) => sum + (item.products.price * item.quantity), 0);
 });
 
-const formatPrice = (p: number) => new Intl.NumberFormat('id-ID').format(p);
+const grandTotal = computed(() => {
+  return productSubtotal.value + adminFee.value;
+});
+
+const formatPrice = (p: number) => new Intl.NumberFormat('id-ID').format(p || 0);
 
 const processCheckout = async () => {
   loading.value = true;
@@ -141,7 +193,9 @@ const processCheckout = async () => {
         product_id: item.products.id,
         quantity: item.quantity
       })),
-      payment_method_code: selectedPaymentMethod.value
+      payment_method_code: selectedPaymentMethod.value,
+      admin_fee: adminFee.value, // Kirim fee hasil fetch ke backend
+      total_amount: grandTotal.value 
     }, {
       headers: { Authorization: `Bearer ${auth.token}` }
     });
@@ -149,23 +203,17 @@ const processCheckout = async () => {
     const result = res.data.data;
     const payment = result.payment_details; 
 
-    // Bersihkan cart lokal
     localStorage.removeItem('checkoutItems');
 
-    // [FIXED] Logika Redirect Pembayaran
     if (payment) {
-        // Cek apakah ada Payment URL (untuk E-Wallet / Payment Gateway / Link Ajaib)
         if (payment.payment_url && payment.payment_url.startsWith('http')) {
-             // Redirect window browser ke halaman pembayaran eksternal
              window.location.href = payment.payment_url;
         } else {
-             // Jika tipe VA atau Manual, tampilkan halaman sukses internal
              const paymentDataString = btoa(JSON.stringify(payment));
              router.push(`/payment-success?data=${paymentDataString}`);
         }
     } else {
-        // Fallback jika payment detail kosong
-        alert("Order berhasil dibuat! Silakan cek status di menu Pesanan Saya.");
+        alert("Order berhasil dibuat! Cek status di Pesanan Saya.");
         router.push('/orders');
     }
 
