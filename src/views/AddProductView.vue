@@ -62,7 +62,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import Navbar from '../components/Navbar.vue';
-import axios from 'axios';
+import api from '../lib/axios'; // Gunakan API pusat
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 
@@ -84,18 +84,16 @@ const submitProduct = async () => {
   
   loading.value = true;
   try {
-    await axios.post('https://ecommerce-api-topaz-iota.vercel.app/api/products', {
+    await api.post('/products', {
       name: form.name,
       description: form.description,
       price: Number(form.price),
       stock: Number(form.stock),
       image_url: form.image_url
-    }, {
-      headers: { Authorization: `Bearer ${auth.token}` }
-    });
+    }); // Header otomatis
 
     alert("Produk berhasil ditambahkan!");
-    router.push('/'); // Balik ke home biar langsung kelihatan produknya
+    router.push('/');
   } catch (error: any) {
     console.error(error);
     alert(error.response?.data?.error || "Gagal menambahkan produk");

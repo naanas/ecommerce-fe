@@ -95,7 +95,7 @@
 import { ref, computed, onMounted } from 'vue';
 import Navbar from '../components/Navbar.vue';
 import { ShoppingCart } from 'lucide-vue-next';
-import axios from 'axios';
+import api from '../lib/axios'; // Ganti axios
 import { useAuthStore } from '../stores/auth';
 import { useCartStore } from '../stores/cart';
 import { useRouter } from 'vue-router';
@@ -108,14 +108,10 @@ const auth = useAuthStore();
 const cartStore = useCartStore();
 const router = useRouter();
 
-const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
-
 const loadCart = async () => {
   loading.value = true;
   try {
-    const res = await api.get('/cart', {
-       headers: { Authorization: `Bearer ${auth.token}` }
-    });
+    const res = await api.get('/cart'); // Header otomatis
     cartItems.value = res.data.data;
   } catch (error) {
     console.error("Gagal load cart", error);
@@ -151,25 +147,17 @@ const changeQty = async (item: any, change: number) => {
    if (item.quantity + change < 1) return;
    if (item.quantity + change > item.products.stock) return alert("Stok tidak cukup!");
 
-   // Optimistic UI Update (Update tampilan dulu biar cepat)
    item.quantity += change;
 
    try {
-     // Hit API Add To Cart (Karena di backend logicnya Upsert/Tambah Qty)
      await api.post('/cart', {
         product_id: item.products.id,
-        quantity: change // Backend harus handle +1 atau -1, atau kita kirim total
-        // TAPI: Controller kita diatas logicnya: quantity = existing + new.
-        // JADI: Kirim selisihnya (1 atau -1) itu sudah benar kalau controller support negative.
-        // KITA UBAH DIKIT CONTROLLERNYA ATAU LOGICNYA.
-        // Cara paling aman: Pakai endpoint khusus update qty atau hapus lalu insert (tapi itu ribet).
-        // SOLUSI MUDAH: Kita insert dengan qty=1 atau qty=-1. Tapi controller tadi tidak handle qty minus.
-     }, { headers: { Authorization: `Bearer ${auth.token}` }});
+        quantity: change
+     });
      
-     // Refresh total cart badge
      cartStore.fetchCart();
    } catch(e) {
-     item.quantity -= change; // Revert kalau error
+     item.quantity -= change;
      console.error(e);
    }
 };
@@ -177,8 +165,7 @@ const changeQty = async (item: any, change: number) => {
 const deleteItem = async (id: string) => {
    if(!confirm("Hapus item ini?")) return;
    try {
-     await api.delete(`/cart/${id}`, { headers: { Authorization: `Bearer ${auth.token}` }});
-     // Hapus dari list lokal
+     await api.delete(`/cart/${id}`);
      cartItems.value = cartItems.value.filter(i => i.id !== id);
      selectedItems.value = selectedItems.value.filter(i => i.id !== id);
      cartStore.fetchCart();

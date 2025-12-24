@@ -52,12 +52,10 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
-import axios from 'axios';
+import api from '../lib/axios'; // Ganti axios lokal
 import Navbar from '../components/Navbar.vue';
-import { useAuthStore } from '../stores/auth';
 import { useRoute, useRouter } from 'vue-router';
 
-const auth = useAuthStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -65,15 +63,12 @@ const loadingData = ref(true);
 const submitting = ref(false);
 const form = reactive({ name: '', description: '', price: 0, stock: 0, image_url: '' });
 
-const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
-
 onMounted(async () => {
   try {
     const { id } = route.params;
-    const res = await api.get(`/products/${id}`); // Ambil data lama
+    const res = await api.get(`/products/${id}`);
     const data = res.data.data;
     
-    // Isi form dengan data lama
     form.name = data.name;
     form.description = data.description;
     form.price = data.price;
@@ -91,9 +86,7 @@ const updateProduct = async () => {
   submitting.value = true;
   try {
     const { id } = route.params;
-    await api.put(`/products/${id}`, form, {
-      headers: { Authorization: `Bearer ${auth.token}` }
-    });
+    await api.put(`/products/${id}`, form); // Header otomatis
     alert("Produk berhasil diupdate!");
     router.push('/seller/my-shop');
   } catch (error: any) {

@@ -1,31 +1,26 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
+import api from '../lib/axios'; // Import dari konfigurasi pusat
 import { useAuthStore } from './auth';
 
 export const useCartStore = defineStore('cart', {
   state: () => ({
-    items: [] as any[], // Menyimpan data item keranjang
+    items: [] as any[],
   }),
   getters: {
-    // Menghitung jumlah item unik (jumlah jenis barang)
     totalItems: (state) => state.items.length,
-    
-    // OPSI: Kalau mau menghitung total quantity (misal beli 2 baju + 3 celana = 5)
-    // totalQuantity: (state) => state.items.reduce((sum, item) => sum + item.quantity, 0),
   },
   actions: {
     async fetchCart() {
       const auth = useAuthStore();
-      // Kalau gak ada token/gak login, kosongin keranjang
       if (!auth.token) {
         this.items = [];
         return;
       }
 
       try {
-        const res = await axios.get('https://ecommerce-api-topaz-iota.vercel.app/api/cart', {
-          headers: { Authorization: `Bearer ${auth.token}` }
-        });
+        // URL sudah otomatis dibaca dari baseURL di src/lib/axios.ts
+        // Header Authorization juga sudah otomatis dipasang
+        const res = await api.get('/cart');
         if (res.data.success) {
           this.items = res.data.data;
         }
@@ -38,17 +33,13 @@ export const useCartStore = defineStore('cart', {
       const auth = useAuthStore();
       if (!auth.token) throw new Error("Silakan login terlebih dahulu");
 
-      // 1. Kirim ke Backend
-      await axios.post('https://ecommerce-api-topaz-iota.vercel.app/api/cart', 
-        { product_id: productId, quantity },
-        { headers: { Authorization: `Bearer ${auth.token}` } }
-      );
+      // Kirim ke Backend (Path relatif saja)
+      await api.post('/cart', { product_id: productId, quantity });
 
-      // 2. Update State Lokal (Fetch ulang biar sinkron)
+      // Update State Lokal
       await this.fetchCart();
     },
     
-    // Reset saat logout
     clearCart() {
       this.items = [];
     }

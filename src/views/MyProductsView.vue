@@ -57,20 +57,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import Navbar from '../components/Navbar.vue';
-import axios from 'axios';
+import api from '../lib/axios'; // Ganti axios lokal
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 
 const products = ref<any[]>([]);
 const auth = useAuthStore();
 const router = useRouter();
-const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
 
 const loadMyProducts = async () => {
   try {
-    const res = await api.get('/seller/products', {
-       headers: { Authorization: `Bearer ${auth.token}` }
-    });
+    const res = await api.get('/seller/products'); // Header otomatis
     products.value = res.data.data;
   } catch (error) {
     console.error(error);
@@ -81,9 +78,7 @@ const deleteProduct = async (id: string) => {
   if(!confirm("Yakin ingin menghapus produk ini selamanya?")) return;
   
   try {
-    await api.delete(`/products/${id}`, {
-       headers: { Authorization: `Bearer ${auth.token}` }
-    });
+    await api.delete(`/products/${id}`);
     loadMyProducts(); // Refresh list
   } catch (error) {
     alert("Gagal menghapus produk");

@@ -78,7 +78,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { ShoppingBag } from 'lucide-vue-next';
-import axios from 'axios';
+import api from '../lib/axios'; // Import API pusat
 import { useAuthStore } from '../stores/auth';
 import { useRouter } from 'vue-router';
 
@@ -92,17 +92,15 @@ const router = useRouter();
 const handleLogin = async () => {
   loading.value = true;
   try {
-    // Sesuaikan URL dengan backend kamu
-    const res = await axios.post('https://ecommerce-api-topaz-iota.vercel.app/api/auth/login', {
+    const res = await api.post('/auth/login', {
       email: email.value,
       password: password.value
     });
 
     if (res.data.success) {
-      // Simpan token ke Pinia Store
       auth.login(res.data.data);
       alert("Login Berhasil!");
-      router.push('/'); // Redirect ke Home
+      router.push('/'); 
     }
   } catch (error: any) {
     console.error(error);

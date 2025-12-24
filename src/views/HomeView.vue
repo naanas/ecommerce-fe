@@ -81,9 +81,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
 import Navbar from '../components/Navbar.vue';
 import { ShoppingCart } from 'lucide-vue-next';
+import api from '../lib/axios'; // Gunakan API pusat
 import { useAuthStore } from '../stores/auth';
 import { useCartStore } from '../stores/cart';
 
@@ -92,8 +92,6 @@ const loading = ref(true);
 
 const auth = useAuthStore();
 const cartStore = useCartStore();
-
-const api = axios.create({ baseURL: 'https://ecommerce-api-topaz-iota.vercel.app/api' });
 
 const loadProducts = async () => {
   loading.value = true;
@@ -115,21 +113,17 @@ const formatPrice = (price: number) => {
   return new Intl.NumberFormat('id-ID').format(price);
 };
 
-// Logika Tambah Keranjang dengan Validasi Lengkap
 const addToCart = async (product: any) => {
-  // 1. Cek Login
   if(!auth.token) {
     alert("Silakan login terlebih dahulu!");
     return;
   }
   
-  // 2. Validasi Anti-Self-Buy (Mencegah beli barang sendiri)
   if (auth.user.id === product.seller_id) {
     alert("Waduh! Anda tidak bisa membeli produk dagangan sendiri.");
     return;
   }
 
-  // 3. Validasi Stok Frontend
   if(product.stock <= 0) {
     alert("Maaf, stok produk ini habis!");
     return;
