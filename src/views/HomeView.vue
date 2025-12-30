@@ -207,7 +207,7 @@
 import { ref, onMounted } from 'vue';
 import Navbar from '../components/Navbar.vue';
 import { 
-  ShoppingCart, Star, MapPin, Zap, ChevronRight, ChevronLeft, 
+  Star, MapPin, Zap, ChevronRight, ChevronLeft, 
   Plus, PackageOpen, Smartphone, Shirt, Gift, Car, CreditCard, 
   Gamepad2, Utensils, Home, Briefcase 
 } from 'lucide-vue-next';
