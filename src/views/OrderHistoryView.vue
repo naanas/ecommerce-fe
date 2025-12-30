@@ -68,16 +68,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'; // Tambah onUnmounted
+import { ref, onMounted, onUnmounted } from 'vue';
 import Navbar from '../components/Navbar.vue';
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
-import { supabase } from '../lib/supabase'; // [BARU] Import Supabase Client
+// import { supabase } from '../lib/supabase'; // <-- HAPUS INI (Supabase Realtime tidak dipakai)
 
 const orders = ref<any[]>([]);
 const loading = ref(true);
 const auth = useAuthStore();
-let realtimeChannel: any = null; // Variable untuk subscription
+let pollingInterval: any = null; // [GANTI] Variabel Timer untuk Auto-Refresh
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const PAYMENT_ORCHESTRATOR_URL = import.meta.env.VITE_PAYMENT_ORCHESTRATOR_URL;
@@ -86,55 +86,44 @@ const api = axios.create({ baseURL: API_BASE_URL });
 
 onMounted(async () => {
   if (!auth.token) return;
+  
+  // 1. Ambil data pertama kali (Loading muncul)
   await fetchOrders();
-  setupRealtime(); // [BARU] Jalankan listener realtime
+  
+  // 2. [AUTO-REFRESH] Cek data baru setiap 3 detik (Tanpa Loading spinner)
+  console.log("🔄 Auto-refresh aktif: Mengecek status pembayaran setiap 3 detik...");
+  pollingInterval = setInterval(() => {
+    fetchOrders(true); // true = silent refresh
+  }, 3000); 
 });
 
-// [BARU] Bersihkan subscription saat pindah halaman
 onUnmounted(() => {
-  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+  // Matikan timer saat user pindah halaman agar browser tidak berat
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    console.log("🛑 Auto-refresh dimatikan.");
+  }
 });
 
-const fetchOrders = async () => {
+// [UPDATE] Tambah parameter 'silent' agar loading tidak kedip-kedip
+const fetchOrders = async (silent = false) => {
   try {
     const res = await api.get('/orders/my', {
       headers: { Authorization: `Bearer ${auth.token}` }
     });
+    // Update data order dengan yang terbaru dari server
     orders.value = res.data.data;
   } catch (error) {
     console.error("Gagal ambil history", error);
   } finally {
-    loading.value = false;
+    // Hanya matikan loading spinner jika ini bukan refresh diam-diam
+    if (!silent) {
+        loading.value = false;
+    }
   }
 };
 
-// [BARU] Fungsi Realtime
-const setupRealtime = () => {
-  if (!auth.user?.id) return;
-
-  console.log("🔌 Connecting to Realtime for user:", auth.user.id);
-
-  realtimeChannel = supabase
-    .channel('public:orders')
-    .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'orders',
-        filter: `buyer_id=eq.${auth.user.id}` // Filter hanya order milik user ini
-    }, (payload) => {
-        console.log('⚡ Order updated:', payload);
-        const updatedOrder = payload.new;
-        
-        // Cari order yang berubah di list lokal dan update statusnya
-        const index = orders.value.findIndex(o => o.id === updatedOrder.id);
-        if (index !== -1) {
-            orders.value[index].status = updatedOrder.status;
-            // Jika ada field lain yang berubah (misal payment_id), update juga
-            if (updatedOrder.payment_id) orders.value[index].payment_id = updatedOrder.payment_id;
-        }
-    })
-    .subscribe();
-};
+// [HAPUS] Function setupRealtime dihapus total karena diganti Polling
 
 const formatPrice = (p: number) => new Intl.NumberFormat('id-ID').format(p);
 
@@ -148,7 +137,7 @@ const statusClass = (status: string) => {
     case 'PENDING': return 'text-orange-500';
     case 'SUCCESS': return 'text-green-600';
     case 'FAILED': return 'text-red-600';
-    case 'EXPIRED': return 'text-gray-400'; // Tambahan untuk expired
+    case 'EXPIRED': return 'text-gray-400';
     default: return 'text-gray-500';
   }
 };
@@ -157,7 +146,8 @@ const payNow = (order: any) => {
   const trxId = order.payment_id;
   if (trxId) {
       const orchestratorUrl = PAYMENT_ORCHESTRATOR_URL; 
-      const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`; // [FIX] Tambah /api jika route backend anda pakai /api
+      // Link simulasi pembayaran
+      const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`;
       window.open(simulationLink, '_blank');
   } 
   else {
