@@ -166,7 +166,7 @@ const payNow = (order: any) => {
   const trxId = order.payment_id;
   if (trxId) {
       const orchestratorUrl = PAYMENT_ORCHESTRATOR_URL; 
-      const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`;
+      const simulationLink = `${orchestratorUrl}/payments/pay-simulate/${trxId}`;
       window.open(simulationLink, '_blank');
   } 
   else {
