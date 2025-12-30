@@ -72,12 +72,11 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import Navbar from '../components/Navbar.vue';
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
-// import { supabase } from '../lib/supabase'; // <-- HAPUS INI (Supabase Realtime tidak dipakai)
 
 const orders = ref<any[]>([]);
 const loading = ref(true);
 const auth = useAuthStore();
-let pollingInterval: any = null; // [GANTI] Variabel Timer untuk Auto-Refresh
+let pollingInterval: any = null;
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const PAYMENT_ORCHESTRATOR_URL = import.meta.env.VITE_PAYMENT_ORCHESTRATOR_URL;
@@ -87,43 +86,64 @@ const api = axios.create({ baseURL: API_BASE_URL });
 onMounted(async () => {
   if (!auth.token) return;
   
-  // 1. Ambil data pertama kali (Loading muncul)
+  // 1. Ambil data awal
   await fetchOrders();
   
-  // 2. [AUTO-REFRESH] Cek data baru setiap 3 detik (Tanpa Loading spinner)
-  console.log("🔄 Auto-refresh aktif: Mengecek status pembayaran setiap 3 detik...");
-  pollingInterval = setInterval(() => {
-    fetchOrders(true); // true = silent refresh
-  }, 3000); 
-});
+  // 2. [SMART POLLING] Cek apakah ada order pending?
+  const hasPending = orders.value.some(o => o.status === 'PENDING');
 
-onUnmounted(() => {
-  // Matikan timer saat user pindah halaman agar browser tidak berat
-  if (pollingInterval) {
-    clearInterval(pollingInterval);
-    console.log("🛑 Auto-refresh dimatikan.");
+  if (hasPending) {
+      console.log("⏳ Ada tagihan pending. Auto-refresh aktif (5s)...");
+      startPolling();
+  } else {
+      console.log("✅ Tidak ada tagihan pending. Auto-refresh idle.");
   }
 });
 
-// [UPDATE] Tambah parameter 'silent' agar loading tidak kedip-kedip
+onUnmounted(() => {
+  stopPolling();
+});
+
+// Fungsi Mulai Polling
+const startPolling = () => {
+  if (pollingInterval) clearInterval(pollingInterval);
+
+  pollingInterval = setInterval(async () => {
+      await fetchOrders(true); // Silent refresh
+
+      // Cek lagi setelah update, masih ada yang pending gak?
+      const stillPending = orders.value.some(o => o.status === 'PENDING');
+      
+      if (!stillPending) {
+          console.log("🎉 Semua tagihan selesai/expired. Stop polling.");
+          stopPolling();
+      }
+  }, 5000); // 5 Detik
+};
+
+// Fungsi Stop Polling
+const stopPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+    console.log("🛑 Polling dihentikan.");
+  }
+};
+
 const fetchOrders = async (silent = false) => {
   try {
     const res = await api.get('/orders/my', {
       headers: { Authorization: `Bearer ${auth.token}` }
     });
-    // Update data order dengan yang terbaru dari server
     orders.value = res.data.data;
   } catch (error) {
     console.error("Gagal ambil history", error);
   } finally {
-    // Hanya matikan loading spinner jika ini bukan refresh diam-diam
     if (!silent) {
         loading.value = false;
     }
   }
 };
-
-// [HAPUS] Function setupRealtime dihapus total karena diganti Polling
 
 const formatPrice = (p: number) => new Intl.NumberFormat('id-ID').format(p);
 
@@ -146,7 +166,6 @@ const payNow = (order: any) => {
   const trxId = order.payment_id;
   if (trxId) {
       const orchestratorUrl = PAYMENT_ORCHESTRATOR_URL; 
-      // Link simulasi pembayaran
       const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`;
       window.open(simulationLink, '_blank');
   } 
