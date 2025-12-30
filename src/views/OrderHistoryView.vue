@@ -37,7 +37,6 @@
               <p class="text-sm text-gray-500">x{{ item.quantity }}</p>
             </div>
             <div class="text-right">
-              <p class="text-gray-400 text-xs line-through" v-if="false">Rp{{ formatPrice(item.products.price * 1.2) }}</p>
               <p class="text-shopee-primary font-medium">Rp{{ formatPrice(item.price_at_purchase) }}</p>
             </div>
           </div>
@@ -69,16 +68,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue'; // Tambah onUnmounted
 import Navbar from '../components/Navbar.vue';
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
+import { supabase } from '../lib/supabase'; // [BARU] Import Supabase Client
 
 const orders = ref<any[]>([]);
 const loading = ref(true);
 const auth = useAuthStore();
+let realtimeChannel: any = null; // Variable untuk subscription
 
-// --- BAGIAN ENV ---
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const PAYMENT_ORCHESTRATOR_URL = import.meta.env.VITE_PAYMENT_ORCHESTRATOR_URL;
 
@@ -86,6 +86,16 @@ const api = axios.create({ baseURL: API_BASE_URL });
 
 onMounted(async () => {
   if (!auth.token) return;
+  await fetchOrders();
+  setupRealtime(); // [BARU] Jalankan listener realtime
+});
+
+// [BARU] Bersihkan subscription saat pindah halaman
+onUnmounted(() => {
+  if (realtimeChannel) supabase.removeChannel(realtimeChannel);
+});
+
+const fetchOrders = async () => {
   try {
     const res = await api.get('/orders/my', {
       headers: { Authorization: `Bearer ${auth.token}` }
@@ -96,7 +106,35 @@ onMounted(async () => {
   } finally {
     loading.value = false;
   }
-});
+};
+
+// [BARU] Fungsi Realtime
+const setupRealtime = () => {
+  if (!auth.user?.id) return;
+
+  console.log("🔌 Connecting to Realtime for user:", auth.user.id);
+
+  realtimeChannel = supabase
+    .channel('public:orders')
+    .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'orders',
+        filter: `buyer_id=eq.${auth.user.id}` // Filter hanya order milik user ini
+    }, (payload) => {
+        console.log('⚡ Order updated:', payload);
+        const updatedOrder = payload.new;
+        
+        // Cari order yang berubah di list lokal dan update statusnya
+        const index = orders.value.findIndex(o => o.id === updatedOrder.id);
+        if (index !== -1) {
+            orders.value[index].status = updatedOrder.status;
+            // Jika ada field lain yang berubah (misal payment_id), update juga
+            if (updatedOrder.payment_id) orders.value[index].payment_id = updatedOrder.payment_id;
+        }
+    })
+    .subscribe();
+};
 
 const formatPrice = (p: number) => new Intl.NumberFormat('id-ID').format(p);
 
@@ -110,6 +148,7 @@ const statusClass = (status: string) => {
     case 'PENDING': return 'text-orange-500';
     case 'SUCCESS': return 'text-green-600';
     case 'FAILED': return 'text-red-600';
+    case 'EXPIRED': return 'text-gray-400'; // Tambahan untuk expired
     default: return 'text-gray-500';
   }
 };
@@ -118,8 +157,7 @@ const payNow = (order: any) => {
   const trxId = order.payment_id;
   if (trxId) {
       const orchestratorUrl = PAYMENT_ORCHESTRATOR_URL; 
-      // Buka link simulasi pembayaran
-      const simulationLink = `${orchestratorUrl}/payments/pay-simulate/${trxId}`;
+      const simulationLink = `${orchestratorUrl}/api/payments/pay-simulate/${trxId}`; // [FIX] Tambah /api jika route backend anda pakai /api
       window.open(simulationLink, '_blank');
   } 
   else {

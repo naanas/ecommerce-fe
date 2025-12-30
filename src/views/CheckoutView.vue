@@ -114,7 +114,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'; // Tambahkan watch
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Navbar from '../components/Navbar.vue';
 import { MapPin, CreditCard, Wallet } from 'lucide-vue-next';
@@ -127,15 +127,12 @@ const checkoutItems = ref<any[]>([]);
 const loading = ref(false);
 const loadingFee = ref(false); 
 const adminFee = ref(0);
-const selectedPaymentMethod = ref('BCA_VA'); // Default
+const selectedPaymentMethod = ref('BCA_VA'); 
 
-// Instance API untuk ke Ecommerce Backend
+// Instance API ke Ecommerce Backend (mengambil base URL dari .env frontend)
 const api = axios.create({ 
   baseURL: import.meta.env.VITE_API_BASE_URL 
 });
-
-// URL Orchestrator dari ENV
-const ORCHESTRATOR_URL = import.meta.env.VITE_PAYMENT_ORCHESTRATOR_URL || 'http://localhost:3000/api';
 
 onMounted(async () => {
   if (!auth.token) return router.push('/login');
@@ -149,18 +146,22 @@ onMounted(async () => {
   await fetchAdminFee();
 });
 
-// [FIXED] Watcher: Pantau perubahan metode pembayaran
+// Watcher: Jika user ganti metode pembayaran, ambil fee baru
 watch(selectedPaymentMethod, () => {
   fetchAdminFee();
 });
 
+// [PERUBAHAN UTAMA] Fetch Fee via Ecommerce API (Proxy)
 const fetchAdminFee = async () => {
   loadingFee.value = true;
   try {
-    // [FIXED] Kirim parameter 'code' ke backend
-    const res = await axios.get(`${ORCHESTRATOR_URL}/admin/config`, {
+    // Tembak endpoint /payment/fee di backend ecommerce kita sendiri
+    const res = await api.get('/payment/fee', {
       params: { 
-        code: selectedPaymentMethod.value // Kirim kode metode (BCA_VA, OVO, dll)
+        code: selectedPaymentMethod.value // Kirim parameter code
+      },
+      headers: {
+        Authorization: `Bearer ${auth.token}` // Sertakan token karena endpoint ini protected
       }
     });
 
@@ -168,8 +169,8 @@ const fetchAdminFee = async () => {
       adminFee.value = Number(res.data.data.admin_fee);
     }
   } catch (error) {
-    console.error("Gagal ambil fee", error);
-    adminFee.value = 0; // Reset ke 0 jika gagal agar tidak error perhitungan
+    console.error("Gagal ambil fee:", error);
+    adminFee.value = 0; 
   } finally {
     loadingFee.value = false;
   }
@@ -194,7 +195,7 @@ const processCheckout = async () => {
         quantity: item.quantity
       })),
       payment_method_code: selectedPaymentMethod.value,
-      admin_fee: adminFee.value, // Kirim fee hasil fetch ke backend
+      admin_fee: adminFee.value, 
       total_amount: grandTotal.value 
     }, {
       headers: { Authorization: `Bearer ${auth.token}` }
@@ -205,6 +206,7 @@ const processCheckout = async () => {
 
     localStorage.removeItem('checkoutItems');
 
+    // Handle Redirect Payment
     if (payment) {
         if (payment.payment_url && payment.payment_url.startsWith('http')) {
              window.location.href = payment.payment_url;
